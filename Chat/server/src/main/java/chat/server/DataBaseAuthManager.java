@@ -7,85 +7,75 @@ import java.util.List;
 public class DataBaseAuthManager implements AuthManager {
     private Connection connection;
     private Statement stmt;
+    private PreparedStatement psGetNicknameByLoginAndPassword;
+    private PreparedStatement psReplaceNickname;
+    private PreparedStatement psIsNickBusy;
 
-    public DataBaseAuthManager() {
+    @Override
+    public void start() {
+        try {
+            Class.forName("org.sqlite.JDBC");
+            connection = DriverManager.getConnection("jdbc:sqlite:chat.db");
+            stmt = connection.createStatement();
+            psGetNicknameByLoginAndPassword = connection.prepareStatement("SELECT nickname FROM users WHERE login = ? AND password = ?");
+            psReplaceNickname = connection.prepareStatement("UPDATE users SET nickname = ? WHERE nickname = ?");
+            psIsNickBusy = connection.prepareStatement("SELECT nickname FROM users WHERE nickname = ?");
+        } catch (ClassNotFoundException | SQLException e){
+            throw new RuntimeException("Unable to connect to DB");
+        }
+    }
 
+    @Override
+    public void stop() {
+        tryClose(psIsNickBusy);
+        tryClose(psReplaceNickname);
+        tryClose(psGetNicknameByLoginAndPassword);
+        tryClose(stmt);
+        tryClose(connection);
+    }
+
+    @Override
+    public boolean isNickBusy(String nickname) {
+        try{
+            psIsNickBusy.setString(1, nickname);
+            ResultSet rs = psIsNickBusy.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     @Override
     public String getNicknameByLoginAndPassword(String login, String password) {
         try {
-            connect();
-            try(PreparedStatement ps = connection.prepareStatement("SELECT nickname FROM users WHERE login = ? AND password = ?")){
-                ps.setString(1, login);
-                ps.setString(2, password);
-                return ps.executeQuery().getString("nickname");
-            }
-        } catch (SQLException | ClassNotFoundException e) {
+            psGetNicknameByLoginAndPassword.setString(1, login);
+            psGetNicknameByLoginAndPassword.setString(2, password);
+            return psGetNicknameByLoginAndPassword.executeQuery().getString("nickname");
+        } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            disconnect();
         }
         return null;
     }
 
     @Override
-    public List<String> getNicknameList() {
-        List<String> nicknameList = new ArrayList<>();
-        try {
-            connect();
-            try(ResultSet rs = stmt.executeQuery("SELECT nickname FROM users")){
-                while (rs.next()){
-                    nicknameList.add(rs.getString("nickname"));
-                }
-            }
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace();
-        } finally {
-            disconnect();
-        }
-        return nicknameList;
-    }
-
-    @Override
     public boolean replaceNickname(String oldNickname, String newNickname) {
-        try {
-            connect();
-            try(PreparedStatement ps = connection.prepareStatement("UPDATE users SET nickname = ? WHERE nickname = ?")){
-                ps.setString(1, newNickname);
-                ps.setString(2, oldNickname);
-                return ps.executeUpdate() != 0;
-            }
-        } catch (SQLException | ClassNotFoundException e) {
+        try{
+            psReplaceNickname.setString(1, newNickname);
+            psReplaceNickname.setString(2, oldNickname);
+            return psReplaceNickname.executeUpdate() != 0;
+        } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            disconnect();
         }
         return false;
     }
 
-    private void connect() throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
-        connection = DriverManager.getConnection("jdbc:sqlite:chat.db");
-        stmt = connection.createStatement();
-    }
-
-    private void disconnect(){
+    private void tryClose(AutoCloseable closeable){
         try {
-            if(stmt != null) {
-                stmt.close();
-            }
-        } catch (SQLException e) {
+            closeable.close();
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        try {
-            if(connection != null) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
     }
 
 

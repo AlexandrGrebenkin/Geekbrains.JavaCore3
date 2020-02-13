@@ -18,6 +18,7 @@ public class Server {
     public Server(int port){
         clients = new ArrayList<>();
         authManager = new DataBaseAuthManager();
+        authManager.start();
         try (ServerSocket serverSocket = new ServerSocket(port)){
             System.out.println("Server started.");
             while(true){
@@ -27,6 +28,8 @@ public class Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            authManager.stop();
         }
     }
 
@@ -76,18 +79,9 @@ public class Server {
         return false;
     }
 
-    public boolean isNickBusy(String nickname){
-        for (String nick : authManager.getNicknameList()){
-            if(nick.equals(nickname)){
-                return true;
-            }
-        }
-        return false;
-    }
-
     public void changeNickname (ClientHandler clientHandler, String newNickname){
         String oldNickname = clientHandler.getNickname();
-        if(isNickBusy(newNickname)){
+        if(authManager.isNickBusy(newNickname)){
             clientHandler.sendMessage(newNickname+ " is busy.");
         } else {
             if(authManager.replaceNickname(oldNickname, newNickname)){
