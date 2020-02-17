@@ -7,7 +7,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.util.Collection;
 import java.util.ResourceBundle;
@@ -31,6 +31,7 @@ public class Controller implements Initializable{
     private Network network;
     private boolean authenticated;
     private String nickname;
+    private String HistoryFileAddress = "History.txt";
 
     public void setAuthenticated(boolean authenticated){
         this.authenticated = authenticated;
@@ -45,6 +46,7 @@ public class Controller implements Initializable{
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setAuthenticated(false);
+        textArea.appendText(historyString(100));
         clientsList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
                 msgField.setText("/w " + clientsList.getSelectionModel().getSelectedItem() + " ");
@@ -64,17 +66,17 @@ public class Controller implements Initializable{
                         String message = network.readMessage();
                         if(message.startsWith("/authok ")){
                             nickname = message.split(" ")[1];
-                            textArea.appendText("You entered in chat as " + nickname + "\n");
+                            addText("You entered in chat as " + nickname + "\n");
                             setAuthenticated(true);
                             break;
                         }
-                        textArea.appendText(message + "\n");
+                        addText(message + "\n");
                     }
                     while (true){
                         String message = network.readMessage();
                         if (message.startsWith("/")){
                             if(message.equals("/end_confirm")){
-                                textArea.appendText("Connection with server ended\n");
+                                addText("Connection with server ended\n");
                                 break;
                             }
                             if (message.startsWith("/clients_list ")) {
@@ -92,7 +94,7 @@ public class Controller implements Initializable{
                                 nickname = message.split(" ")[1];
                             }
                         } else {
-                            textArea.appendText(message + "\n");
+                            addText(message + "\n");
                         }
                     }
                 } catch (IOException e) {
@@ -148,5 +150,45 @@ public class Controller implements Initializable{
                     ButtonType.CLOSE);
             alert.showAndWait();
         }
+    }
+
+    private void addText(String text){
+        textArea.appendText(text);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(HistoryFileAddress, true))){
+            writer.write(text);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String historyString(int lastHistoryLinesCount){
+
+        try (RandomAccessFile fileHandler = new RandomAccessFile(HistoryFileAddress, "r")){
+            long fileLength = fileHandler.length() -1;
+            StringBuilder sb = new StringBuilder();
+            int lineCount = 0;
+            for (long filePointer = fileLength; filePointer != -1; filePointer--) { // читаем файл с начала до конца побайтово
+                fileHandler.seek(filePointer);
+                int readByte = fileHandler.readByte();
+                if (readByte == 0xA) { //перенос строки
+                    if (filePointer < fileLength){
+                        lineCount++;
+                    }
+                } else if (readByte == 0xD) { // возврат каретки
+                    if (filePointer < fileLength-1){
+                        lineCount++;
+                    }
+                }
+
+                if (lineCount >= lastHistoryLinesCount) {
+                    break;
+                }
+                sb.append((char)readByte);
+            }
+            return sb.reverse().toString();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+        return null;
     }
 }

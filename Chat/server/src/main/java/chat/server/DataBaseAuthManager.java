@@ -71,10 +71,12 @@ public class DataBaseAuthManager implements AuthManager {
     }
 
     private void tryClose(AutoCloseable closeable){
-        try {
-            closeable.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (closeable != null){
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
