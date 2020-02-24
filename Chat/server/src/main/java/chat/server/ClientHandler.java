@@ -1,5 +1,9 @@
 package chat.server;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -7,6 +11,8 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class ClientHandler {
+    private static final Logger LOGGER = LogManager.getLogger(ClientHandler.class);
+
     private Server server;
     private Socket socket;
     private DataInputStream in;
@@ -30,7 +36,7 @@ public class ClientHandler {
                     chattingStage();
                 }
             } catch (IOException e){
-                e.printStackTrace();
+                LOGGER.throwing(Level.ERROR, e);
             } finally {
                 close();
             }
@@ -39,7 +45,7 @@ public class ClientHandler {
 
     private void authenticatingStage() throws IOException {
         String message = in.readUTF();
-        System.out.println("Message from Client: " + message);
+        LOGGER.info("Message from Client: " + message);
         if(message.startsWith("/auth ")){
             String[] tokens = message.split(" ", 3);
             String nickFromAuthManager = server.getAuthManager().getNicknameByLoginAndPassword(tokens[1], tokens[2]);
@@ -60,7 +66,7 @@ public class ClientHandler {
 
     private void chattingStage() throws IOException {
         String message = in.readUTF();
-        System.out.println("Message from Client: " + message);
+        LOGGER.info("Message from Client: " + message);
         if (message.startsWith("/")){
             if (message.startsWith("/w ")){
                 String[] tokens = message.split(" ", 3);
@@ -84,7 +90,7 @@ public class ClientHandler {
         try{
             out.writeUTF(message);
         } catch (IOException e){
-            e.printStackTrace();
+            LOGGER.throwing(Level.ERROR, e);
         }
     }
 
@@ -108,7 +114,7 @@ public class ClientHandler {
         try{
             closeable.close();
         } catch (IOException e){
-            e.printStackTrace();
+            LOGGER.throwing(Level.ERROR, e);
         }
     }
 }
