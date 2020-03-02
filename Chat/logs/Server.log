@@ -1,0 +1,4 @@
+INFO  2020-02-24 15:23:33 [main] chat.server.Server (Server.java:27) - AuthManager started.
+INFO  2020-02-24 15:24:13 [main] chat.server.Server (Server.java:27) - AuthManager started.
+INFO  2020-02-24 15:24:38 [main] chat.server.Server (Server.java:27) - AuthManager started.
+INFO  2020-02-24 15:25:29 [main] chat.server.Server (Server.java:27) - INFO: AuthManager started.

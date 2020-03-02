@@ -1,5 +1,9 @@
 package chat.server;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -12,6 +16,7 @@ public class Server {
     private AuthManager authManager;
     private List<ClientHandler> clients;
     private final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm:ss");
+    private static final Logger LOGGER = LogManager.getLogger(Server.class);
 
     public AuthManager getAuthManager(){return authManager;}
 
@@ -20,16 +25,17 @@ public class Server {
         authManager = new DataBaseAuthManager();
         authManager.start();
         try (ServerSocket serverSocket = new ServerSocket(port)){
-            System.out.println("Server started.");
+            LOGGER.info("Server started");
             while(true){
                 Socket socket = serverSocket.accept();
-                System.out.println("Client connected.");
+                LOGGER.info("Client connected");
                 new ClientHandler(this, socket);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.throwing(Level.ERROR, e);
         } finally {
             authManager.stop();
+            LOGGER.info("Server stopped");
         }
     }
 

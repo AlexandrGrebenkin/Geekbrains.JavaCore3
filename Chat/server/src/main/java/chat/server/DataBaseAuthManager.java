@@ -1,10 +1,14 @@
 package chat.server;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DataBaseAuthManager implements AuthManager {
+    private static final Logger LOGGER = LogManager.getLogger(DataBaseAuthManager.class);
+
     private Connection connection;
     private Statement stmt;
     private PreparedStatement psGetNicknameByLoginAndPassword;
@@ -21,6 +25,7 @@ public class DataBaseAuthManager implements AuthManager {
             psReplaceNickname = connection.prepareStatement("UPDATE users SET nickname = ? WHERE nickname = ?");
             psIsNickBusy = connection.prepareStatement("SELECT nickname FROM users WHERE nickname = ?");
         } catch (ClassNotFoundException | SQLException e){
+            LOGGER.throwing(Level.ERROR, e);
             throw new RuntimeException("Unable to connect to DB");
         }
     }
@@ -41,7 +46,7 @@ public class DataBaseAuthManager implements AuthManager {
             ResultSet rs = psIsNickBusy.executeQuery();
             return rs.next();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.throwing(Level.ERROR, e);
         }
         return false;
     }
@@ -53,7 +58,7 @@ public class DataBaseAuthManager implements AuthManager {
             psGetNicknameByLoginAndPassword.setString(2, password);
             return psGetNicknameByLoginAndPassword.executeQuery().getString("nickname");
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.throwing(Level.ERROR, e);
         }
         return null;
     }
@@ -65,7 +70,7 @@ public class DataBaseAuthManager implements AuthManager {
             psReplaceNickname.setString(2, oldNickname);
             return psReplaceNickname.executeUpdate() != 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.throwing(Level.ERROR, e);
         }
         return false;
     }
@@ -75,7 +80,7 @@ public class DataBaseAuthManager implements AuthManager {
             try {
                 closeable.close();
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.throwing(Level.ERROR, e);
             }
         }
     }
